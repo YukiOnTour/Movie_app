@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation</title>
+</head>
+<body>
+    <h1>myFlix API Documentation</h1>
+    <table border="1">
+        <tr>
+            <th>Request</th>
+            <th>URL</th>
+            <th>Description</th>
+            <th>Parameters</th>
+            <th>Request Body Example</th>
+            <th>Response</th>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td>/movies</td>
+            <td>Return a list of all movies</td>
+            <td>None</td>
+            <td>None</td>
+            <td>
+                <pre>
+[
+    {
+        "title": "string",
+        "description": "string",
+        "genre": {
+            "name": "string",
+            "description": "string"
+        },
+        "director": {
+            "name": "string",
+            "bio": "string",
+            "birthYear": 0
+        },
+        "imageURL": "string",
+        "featured": true
+    }
+]
+                </pre>
+            </td>
+        </tr>
+        <tr>
+            <td>GET</td>
+            <td>/movies/:id</td>
+            <td>Return data about a single movie by ID</td>
+            <td>id (String)</td>
+            <td>None</td>
+            <td>
+                <pre>
+{
+    "title": "string",
+    "description": "string",
+    "genre": {
+        "name": "string",
+        "description": "string"
+    },
+    "director": {
+        "name": "string",
+        "bio": "string",
+        "birthYear": 0
+    },
+    "imageURL": "string",
+    "featured": true
+}
+                </pre>
+            </td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td>/movies</td>
+            <td>Create a new movie</td>
+            <td>None</td>
+            <td>
+                <pre>
+{
+    "title": "string",
+    "description": "string",
+    "genre": {
+        "name": "string",
+        "description": "string"
+    },
+    "director": {
+        "name": "string",
+        "bio": "string",
+        "birthYear": 0
+    },
+    "imageURL": "string",
+    "featured": true
+}
+                </pre>
+            </td>
+            <td>
+                <pre>
+{
+    "message": "Movie created successfully",
+    "movie": {
+        "title": "string",
+        "description": "string",
+        "genre": {
+            "name": "string",
+            "description": "string"
+        },
+        "director": {
+            "name": "string",
+            "bio": "string",
+            "birthYear": 0
+        },
+        "imageURL": "string",
+        "featured": true
+    }
+}
+                </pre>
+            </td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td>/users</td>
+            <td>Allow new users to register</td>
+            <td>None</td>
+            <td>
+                <pre>
+{
+    "username": "user",
+    "password": "pass",
+    "email": "user@example.com",
+    "birthday": "YYYY-MM-DD"
+}
+                </pre>
+            </td>
+            <td>
+                <pre>
+{
+    "message": "User registered successfully",
+    "user": {
+        "username": "user",
+        "email": "user@example.com",
+        "birthday": "YYYY-MM-DD",
+        "favoriteMovies": []
+    }
+}
+                </pre>
+            </td>
+        </tr>
+        <tr>
+            <td>PUT</td>
+            <td>/users/:username</td>
+            <td>Allow users to update their user info</td>
+            <td>username (String)</td>
+            <td>
+                <pre>
+{
+    "username": "newUser",
+    "password": "newPass",
+    "email": "new@example.com",
+    "birthday": "YYYY-MM-DD"
+}
+                </pre>
+            </td>
+            <td>
+                <pre>
+{
+    "message": "User info updated successfully"
+}
+                </pre>
+            </td>
+        </tr>
+        <tr>
+            <td>POST</td>
+            <td>/users/:username/movies/:movieID</td>
+            <td>Allow users to add a movie to their list of favorites</td>
+            <td>username (String), movieID (String)</td>
+            <td>None</td>
+            <td>
+                <pre>
+{
+    "message": "Movie added to favorites successfully"
+}
+                </pre>
+            </td>
+        </tr>
+        <tr>
+            <td>DELETE</td>
+            <td>/users/:username/movies/:movieID</td>
+            <td>Allow users to remove a movie from their list of favorites</td>
+            <td>username (String), movieID (String)</td>
+            <td>None</td>
+            <td>
+                <pre>
+{
+    "message": "Movie removed from favorites successfully"
+}
+                </pre>
+            </td>
+        </tr>
+        <tr>
+            <td>DELETE</td>
+            <td>/users/:username</td>
+            <td>Allow existing users to deregister</td>
+            <td>username (String)</td>
+            <td>None</td>
+            <td>
+                <pre>
+{
+    "message": "User deregistered successfully"
+}
+                </pre>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
