@@ -6,15 +6,30 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const passport = require('./passport');
-const auth = require('./auth');
-const { body, validationResult } = require('express-validator');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const { User, Movie } = require('./models');
+const { validationResult, body } = require('express-validator');
 
 const app = express();
 
-app.use(morgan('common'));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.json());
-app.use(cors());
+// Setup middlewares
+app.use(morgan('common')); // Logging
+app.use(express.static(path.join(__dirname, 'public'))); // Serving static files
+app.use(bodyParser.json()); // Middleware to parse JSON request bodies
+
+// CORS configuration
+app.use(cors({
+  origin: (origin, callback) => {
+    let allowedOrigins = ['http://localhost:8080', 'http://localhost:1234', 'https://movieapp-77c122f67522.herokuapp.com', 'https://openlibrary.org'];
+    if (!origin) return callback(null, true); // Allow requests with no origin, such as mobile apps or curl requests
+    if (allowedOrigins.indexOf(origin) === -1) {
+      let message = 'The CORS policy for this application doesn’t allow access from origin ' + origin;
+      return callback(new Error(message), false);
+    }
+    return callback(null, true); // Allow the request
+  }
+}));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
@@ -25,28 +40,11 @@ mongoose.connect(process.env.MONGO_URI, {
     console.error('MongoDB connection error:', err);
 });
 
-// Require your auth file
-auth(app);
+// Initialize passport
+app.use(passport.initialize());
 
 // Middleware to require authentication
 const requireAuth = passport.authenticate('jwt', { session: false });
-
-// Models
-const { Movie, User } = require('./models');
-const bcrypt = require('bcryptjs');
-
-// Validation for user registration and update
-const userValidationRules = [
-    body('username')
-        .isLength({ min: 5 }).withMessage('Username must be at least 5 characters long')
-        .trim()
-        .matches(/^\S+$/).withMessage('Username must not contain spaces'),
-    body('password')
-        .isLength({ min: 5 }).withMessage('Password must be at least 5 characters long')
-        .matches(/^\S+$/).withMessage('Password must not contain spaces'),
-    body('email').isEmail().withMessage('Email is not valid'),
-    body('birthday').isDate().withMessage('Birthday must be a valid date')
-];
 
 // Middleware to handle validation errors
 const validate = (req, res, next) => {
@@ -57,56 +55,101 @@ const validate = (req, res, next) => {
     next();
 };
 
-// Register new users with validation
-app.post('/users', userValidationRules, validate, async (req, res) => {
-    try {
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        const user = await User.create({
-            username: req.body.username,
-            password: hashedPassword,
-            email: req.body.email,
-            birthday: req.body.birthday
-        });
-        res.status(201).json(user);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Error: ' + err);
+// Login route with validation
+app.post('/login', 
+    body('username').notEmpty().withMessage('Username is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+    validate,
+    async (req, res) => {
+        const { username, password } = req.body;
+
+        try {
+            const user = await User.findOne({ username });
+            if (!user) {
+                return res.status(401).send('Invalid username or password');
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(401).send('Invalid username or password');
+            }
+
+            const token = jwt.sign(
+                { _id: user._id },
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+
+            res.json({ token });
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        }
     }
-});
+);
+
+// Register new users with validation
+app.post('/users', 
+    body('username').notEmpty().withMessage('Username is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+    body('email').isEmail().withMessage('Email is invalid'),
+    validate,
+    async (req, res) => {
+        try {
+            const hashedPassword = await bcrypt.hash(req.body.password, 10);
+            const user = await User.create({
+                username: req.body.username,
+                password: hashedPassword,
+                email: req.body.email,
+                birthday: req.body.birthday
+            });
+            res.status(201).json(user);
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        }
+    }
+);
 
 // Update user with validation
-app.put('/users/:username', requireAuth, userValidationRules, validate, async (req, res) => {
-    try {
-        let updatedData = {
-            username: req.body.username,
-            email: req.body.email,
-            birthday: req.body.birthday
-        };
-        
-        // If password is provided, hash it
-        if (req.body.password) {
-            const hashedPassword = await bcrypt.hash(req.body.password, 10);
-            updatedData.password = hashedPassword;
+app.put('/users/:username', requireAuth, 
+    body('email').optional().isEmail().withMessage('Email is invalid'),
+    validate,
+    async (req, res) => {
+        try {
+            let updatedData = {
+                email: req.body.email,
+                birthday: req.body.birthday
+            };
+            
+            if (req.body.username) {
+                updatedData.username = req.body.username;
+            }
+            
+            if (req.body.password) {
+                const hashedPassword = await bcrypt.hash(req.body.password, 10);
+                updatedData.password = hashedPassword;
+            }
+
+            const user = await User.findOneAndUpdate(
+                { username: req.params.username },
+                { $set: updatedData },
+                { new: true }
+            ).select('-password'); // Exclude password from the returned user object
+
+            if (!user) {
+                return res.status(404).send('User not found');
+            }
+
+            res.json(user);
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
         }
-
-        const user = await User.findOneAndUpdate(
-            { username: req.params.username },
-            { $set: updatedData },
-            { new: true }
-        ).select('-password'); // Exclude password from the returned user object
-
-        if (!user) {
-            return res.status(404).send('User not found');
-        }
-
-        res.json(user);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Error: ' + err);
     }
-});
+);
 
-// Add movie to user's favorites, preventing duplicates
+// Add movie to user's favorites
 app.post('/users/:username/movies/:movieID', requireAuth, async (req, res) => {
     try {
         const user = await User.findOne({ username: req.params.username });
@@ -125,7 +168,7 @@ app.post('/users/:username/movies/:movieID', requireAuth, async (req, res) => {
     }
 });
 
-// Retrieve user details, excluding password
+// Retrieve user details
 app.get('/users/:username', requireAuth, (req, res) => {
     User.findOne({ username: req.params.username })
         .select('-password') // Exclude password from the returned user object
@@ -141,21 +184,22 @@ app.get('/users/:username', requireAuth, (req, res) => {
         });
 });
 
-// Retrieve movies with a limit on the number of results
-app.get('/movies', async (req, res) => {
-    // Get the 'limit' parameter from the query string, default to 10 if not provided
-     const limit = parseInt(req.query.limit) || 10;
-     try { 
-     const movies = await Movie.find().limit(limit).exec();
-     res.json(movies);
-        
-     } catch (err) {
-        console.error(err);
-        res.status(500).send('Error: ' + err);
-    };      
-});
-
-// Other protected routes...
+// Retrieve movies with authentication
+app.get('/movies', 
+    passport.authenticate('jwt', { session: false }), 
+    async (req, res) => {
+        const limit = parseInt(req.query.limit) || 10;
+        try { 
+            const movies = await Movie.find().limit(limit).exec();
+            res.json(movies);
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Error: ' + err);
+        }
+    }
+);
 
 const port = process.env.PORT || 8080;
-app.listen(port);
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
