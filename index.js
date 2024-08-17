@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const morgan = require('morgan');
 const path = require('path');
@@ -141,17 +142,17 @@ app.get('/users/:username', requireAuth, (req, res) => {
 });
 
 // Retrieve movies with a limit on the number of results
-app.get('/movies', (req, res) => {
+app.get('/movies', async (req, res) => {
     // Get the 'limit' parameter from the query string, default to 10 if not provided
-    const limit = parseInt(req.query.limit) || 10;
-
-    Movie.find()
-        .limit(limit)  // Limit the number of results returned
-        .then(movies => res.json(movies))
-        .catch(err => {
-            console.error(err);
-            res.status(500).send('Error: ' + err);
-        });
+     const limit = parseInt(req.query.limit) || 10;
+     try { 
+     const movies = await Movie.find().limit(limit).exec();
+     res.json(movies);
+        
+     } catch (err) {
+        console.error(err);
+        res.status(500).send('Error: ' + err);
+    };      
 });
 
 // Other protected routes...

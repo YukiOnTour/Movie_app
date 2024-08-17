@@ -18,11 +18,45 @@ const directorSchema = new Schema({
 // Define the main Movie schema
 const movieSchema = new Schema({
   title: { type: String, required: true },
-  description: { type: String, required: true },
-  genre: { type: genreSchema, required: true },
-  director: { type: directorSchema, required: true },
-  imageURL: { type: String, required: true },
-  featured: { type: Boolean, required: true }
+  plot: { type: String, required: true },
+  genres: [String],  // Adjusted to match array of strings
+  runtime: Number,
+  cast: [String],  // Array of strings
+  poster: { type: String, required: true },
+  fullplot: { type: String, required: true },
+  languages: [String],  // Array of strings
+  released: Date,
+  directors: [String],  // Array of strings
+  rated: String,
+  awards: {
+    wins: Number,
+    nominations: Number,
+    text: String
+  },
+  year: Number,
+  imdb: {
+    rating: Number,
+    votes: Number,
+    id: Number
+  },
+  countries: [String],  // Array of strings
+  type: String,
+  tomatoes: {
+    viewer: {
+      rating: Number,
+      numReviews: Number,
+      meter: Number
+    },
+    fresh: Number,
+    critic: {
+      rating: Number,
+      numReviews: Number,
+      meter: Number
+    },
+    rotten: Number,
+    lastUpdated: Date
+  },
+  num_mflix_comments: Number
 });
 
 // Define the User schema with bcrypt integration
