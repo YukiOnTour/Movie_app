@@ -141,7 +141,7 @@ app.get('/users/:username', requireAuth, (req, res) => {
 });
 
 // Retrieve movies with a limit on the number of results
-app.get('/movies', requireAuth, (req, res) => {
+app.get('/movies', (req, res) => {
     // Get the 'limit' parameter from the query string, default to 10 if not provided
     const limit = parseInt(req.query.limit) || 10;
 
