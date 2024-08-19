@@ -24,5 +24,5 @@ router.post('/login', (req, res, next) => {
 });
 
 module.exports = (app) => {
-    app.use('/auth', router);
+    app.use('/auth', router); // cimbines auth with login making it /auth/login. 
 };

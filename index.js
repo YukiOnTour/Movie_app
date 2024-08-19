@@ -19,17 +19,8 @@ app.use(express.static(path.join(__dirname, 'public'))); // Serving static files
 app.use(bodyParser.json()); // Middleware to parse JSON request bodies
 
 // CORS configuration
-app.use(cors({
-  origin: (origin, callback) => {
-    let allowedOrigins = ['http://localhost:8080', 'http://localhost:1234', 'https://movieapp-77c122f67522.herokuapp.com', 'https://openlibrary.org'];
-    if (!origin) return callback(null, true); // Allow requests with no origin, such as mobile apps or curl requests
-    if (allowedOrigins.indexOf(origin) === -1) {
-      let message = 'The CORS policy for this application doesn’t allow access from origin ' + origin;
-      return callback(new Error(message), false);
-    }
-    return callback(null, true); // Allow the request
-  }
-}));
+app.use(cors());
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
@@ -96,10 +87,10 @@ app.post('/users',
     validate,
     async (req, res) => {
         try {
-            const hashedPassword = await bcrypt.hash(req.body.password, 10);
+            // const hashedPassword = await bcrypt.hash(req.body.password, 10); remove this to avooid double hashing
             const user = await User.create({
                 username: req.body.username,
-                password: hashedPassword,
+                password: req.body.Password,
                 email: req.body.email,
                 birthday: req.body.birthday
             });
